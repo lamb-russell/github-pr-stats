@@ -1,0 +1,71 @@
+
+<html>
+<head>
+    <title>GitHub Pull Requests Dashboard</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>GitHub Pull Requests Dashboard</h1>
+        </div>
+        <div class="description">
+            <p>Welcome to the GitHub Pull Requests Dashboard...</p>
+        </div>
+
+
+
+        <div class="chart-row">
+            <div class="chart-container">
+                <canvas id="weeklyPrChartByTeam"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="authorPrChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="dailyPrChart"></canvas>
+            </div>
+        </div>
+
+
+
+       <!-- Table for displaying Pull Request data -->
+<div class="pr-table-container">
+    <h2>Pull Requests</h2>
+    <table id="prTable">
+        <thead>
+            <tr>
+                <th>Repository</th>
+                <th>Author</th>
+                <th>Team</th> <!-- New header for team name -->
+                <th>Status</th>
+                <th>Title</th>
+                <th>Link</th>
+            </tr>
+        </thead>
+        <tbody id="prTableBody">
+            <!-- JavaScript will populate this -->
+        </tbody>
+    </table>
+</div>
+
+
+
+    <!-- Add this inside your <body> tag -->
+    <div class="team-mapping-form">
+        <h2>Add Team Mapping</h2>
+        <form id="teamMappingForm">
+            <input type="text" id="username" placeholder="GitHub Username" required>
+            <input type="text" id="teamName" placeholder="Team Name" required>
+            <button type="submit">Add Mapping</button>
+        </form>
+    </div>
+    </div>
+
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

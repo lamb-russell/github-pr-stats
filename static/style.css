@@ -1,0 +1,89 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f2f5;
+    color: #333;
+}
+.container {
+    width: 80%;
+    margin: 20px auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.header {
+    background-color: #4a69bd;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px 8px 0 0;
+    text-align: center;
+}
+.header h1 {
+    margin: 0;
+}
+.description {
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+.pr-item {
+    border-bottom: 1px solid #eee;
+    padding: 10px;
+    font-size: 16px;
+}
+.pr-item:last-child {
+    border-bottom: none;
+}
+.pr-link {
+    color: #1e3799;
+    text-decoration: none;
+}
+.pr-link:hover {
+    text-decoration: underline;
+}
+.pr-table-container {
+    margin: 20px;
+    padding: 10px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #4CAF50;
+    color: white;
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+tr:hover {
+    background-color: #ddd;
+}
+.chart-row {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .chart-container {
+            flex: 1;
+            min-width: 300px; /* Adjust this value based on your preference */
+            margin: 10px;
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+        }
