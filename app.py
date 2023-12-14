@@ -1,14 +1,17 @@
-from flask import Flask, jsonify, render_template
+
+
+from flask import Flask, jsonify, render_template, request
 import sqlite3
 from datetime import datetime, timedelta
 from flask_cors import CORS
-
-from flask import request
 
 app = Flask(__name__)
 CORS(app)
 
 def init_db():
+    """
+    Initialize the database by creating necessary tables.
+    """
     with sqlite3.connect('github_data.db') as conn:
         cursor = conn.cursor()
         cursor.execute('''
@@ -19,11 +22,17 @@ def init_db():
         ''')
         conn.commit()
 
-# Call this function at the start of your app to ensure the table exists
+# Initialize the database when the application starts
 init_db()
 
-
 def query_db(query, args=()):
+    """
+    Execute a query on the database.
+
+    :param query: SQL query string
+    :param args: Arguments for the SQL query
+    :return: Query result
+    """
     conn = sqlite3.connect('github_data.db')
     cursor = conn.cursor()
     cursor.execute(query, args)
@@ -32,6 +41,11 @@ def query_db(query, args=()):
     return result
 
 def get_weekly_pr_stats():
+    """
+    Fetch weekly PR statistics.
+
+    :return: Tuple containing counts of PRs for this week and older
+    """
     today = datetime.now()
     last_week = today - timedelta(days=7)
     prs_this_week = query_db("SELECT COUNT(*) FROM pull_requests WHERE created_at >= ?", (last_week,))
@@ -39,21 +53,34 @@ def get_weekly_pr_stats():
     return prs_this_week[0][0], prs_older[0][0]
 
 def get_author_breakdown():
-    last_week = datetime.now() - timedelta(days=7)
-    # return query_db("SELECT author, COUNT(*) FROM pull_requests GROUP BY author")
+    """
+    Fetch the breakdown of PRs by author.
 
-    query = """SELECT tm.team_name, COUNT(*)
+    :return: List of tuples containing author and their PR count
+    """
+    query = """
+        SELECT ifnull(tm.team_name,pr.author) as team_name, COUNT(*)
         FROM pull_requests pr
         LEFT JOIN team_mapping tm ON pr.author = tm.username
-        GROUP BY tm.team_name"""
-
+        GROUP BY ifnull(tm.team_name,pr.author)
+    """
     return query_db(query)
 
 def get_daily_pr_counts():
+    """
+    Fetch daily PR counts.
+
+    :return: List of tuples containing date and PR count for that date
+    """
     time_horizon = datetime.now() - timedelta(days=30)
     return query_db("SELECT DATE(created_at), COUNT(*) FROM pull_requests WHERE created_at >= ? GROUP BY DATE(created_at)", (time_horizon,))
 
 def get_pull_requests():
+    """
+    Fetch all pull requests with additional details.
+
+    :return: List of tuples containing pull request details
+    """
     conn = sqlite3.connect('github_data.db')
     cursor = conn.cursor()
     cursor.execute("""
@@ -66,6 +93,12 @@ def get_pull_requests():
     return prs
 
 def transform_weekly_data_by_team(weekly_data_by_team):
+    """
+    Transform weekly data by team for visualization.
+
+    :param weekly_data_by_team: Raw data of weekly stats by team
+    :return: Transformed data suitable for chart visualization
+    """
     transformed_data = {
         'labels': ['This Week', 'Older'],
         'datasets': []
@@ -102,36 +135,31 @@ def transform_weekly_data_by_team(weekly_data_by_team):
             'backgroundColor': COLORS[color_index % len(COLORS)]
         }
         transformed_data['datasets'].append(dataset)
-        color_index += 1  # Move to the next color
+        color_index += 1
 
     return transformed_data
 
-
-def get_random_color():
-    import random
-    # Fixed saturation and lightness, vary only the hue
-    h = random.randint(0, 360)  # Hue varies from 0 to 360
-    s = 80  # Saturation at 80%
-    l = 50  # Lightness at 50%
-    return f'hsl({h}, {s}%, {l}%)'
-
-
-
-
 @app.route('/data')
 def data():
+    """
+    Endpoint to fetch pull request data.
+    """
     prs = get_pull_requests()
-    # Convert the result to a list of dicts for easy JSON serialization
     prs_list = [dict(zip(['date', 'count', 'pr_id', 'pr_url', 'repo_name', 'author', 'pr_status', 'created_at', 'comments_count', 'commits_count', 'pr_title', 'team_name'], pr)) for pr in prs]
     return jsonify(prs_list)
 
-
 @app.route('/')
 def index():
+    """
+    Render the main dashboard page.
+    """
     return render_template('index.html')
 
 @app.route('/data/weekly-stats')
 def weekly_stats():
+    """
+    Endpoint for weekly PR statistics.
+    """
     prs_this_week, prs_older = get_weekly_pr_stats()
     data = {
         'labels': ['This Week', 'Older'],
@@ -142,38 +170,40 @@ def weekly_stats():
         }]
     }
     return jsonify(data)
+
 @app.route('/data/weekly-stats-by-team')
 def weekly_stats_by_team():
+    """
+    Endpoint for weekly PR statistics by team.
+    """
     today = datetime.now()
     last_week = today - timedelta(days=7)
     two_weeks_ago = today - timedelta(days=14)
 
     query = """
-        SELECT tm.team_name, 
+        SELECT ifnull(tm.team_name,pr.author) as team_name, 
                SUM(CASE WHEN pr.created_at >= ? THEN 1 ELSE 0 END) as this_week_count,
                SUM(CASE WHEN pr.created_at < ? THEN 1 ELSE 0 END) as older_count
         FROM pull_requests pr
         LEFT JOIN team_mapping tm ON pr.author = tm.username
-        GROUP BY tm.team_name
+        GROUP BY ifnull(tm.team_name,pr.author)
     """
     weekly_data_by_team = query_db(query, (last_week, last_week))
     transformed_data = transform_weekly_data_by_team(weekly_data_by_team)
 
     return jsonify(transformed_data)
 
-
-
-
 @app.route('/data/author-breakdown')
 def author_breakdown():
+    """
+    Endpoint for author breakdown.
+    """
     author_data = get_author_breakdown()
     labels = [item[0] for item in author_data]
     data_values = [item[1] for item in author_data]
 
-    # Example colors - you can choose different ones
     colors = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#bab0ac']
 
-    # If there are more authors than colors, repeat the color array
     if len(labels) > len(colors):
         colors *= (len(labels) // len(colors)) + 1
 
@@ -187,10 +217,11 @@ def author_breakdown():
     }
     return jsonify(data)
 
-
-
 @app.route('/data/daily-counts')
 def daily_counts():
+    """
+    Endpoint for daily PR counts.
+    """
     daily_data = get_daily_pr_counts()
     labels = [item[0] for item in daily_data]
     data_values = [item[1] for item in daily_data]
@@ -207,12 +238,12 @@ def daily_counts():
     }
     return jsonify(data)
 
-
 @app.route('/add-team-mapping', methods=['POST'])
 def add_team_mapping():
+    """
+    Endpoint to add a team mapping.
+    """
     data = request.json
-
-    print(data)
     username = data['username']
     team_name = data['teamName']
     with sqlite3.connect('github_data.db') as conn:
@@ -221,7 +252,6 @@ def add_team_mapping():
         conn.commit()
 
     return jsonify({'status': 'success', 'message': 'Team mapping added'})
-
 
 if __name__ == '__main__':
     app.run(debug=True)
